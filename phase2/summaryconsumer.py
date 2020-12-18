@@ -2,7 +2,7 @@ from kafka import KafkaConsumer, TopicPartition
 from json import loads
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
-from statistics import mean
+from statistics import stdev, StatisticsError
 
 Base = declarative_base()
 
@@ -36,7 +36,7 @@ class XactionConsumer:
         # add a way to connect to your database here.
     def meand(self):
         try:
-            return round(sum(self.deposit)/len(self.deposit),2)
+            return round(sum(self.deposit)/len(self.deposit))
         except ZeroDivisionError:
             return 0
 
@@ -45,6 +45,18 @@ class XactionConsumer:
             return round(sum(self.withdrawal)/len(self.withdrawal), 2)
         except ZeroDivisionError:
             return 0
+
+    def sdevd(self):
+        try:
+            return (stdev(self.deposit))
+        except StatisticsError:
+            return "No calculation available, yet"
+
+    def sdevw(self):
+        try:
+            return (stdev(self.withdrawal))
+        except StatisticsError:
+            return "No calculation available, yet"
 
     def handleMessages(self):
         for message in self.consumer:
@@ -60,8 +72,11 @@ class XactionConsumer:
                 self.custBalances[message['custid']] -= message['amt']
                 self.withdrawal.append(message['amt'])
             print(self.custBalances)
-            print("Average deposit amount: " + str(XactionConsumer.meand(self)))
-            print("Average withdrawal amount: " + str(XactionConsumer.meanw(self)))
+
+            print("Average deposit amount: " + str(round(XactionConsumer.meand(self),2)))
+            print("Standard deviation of deposits: " + str(XactionConsumer.sdevd(self)))
+            print("Average withdrawal amount: " + str(round(XactionConsumer.meanw(self),2)))
+            print("Standard deviation of withdrawal: " + str(XactionConsumer.sdevw(self)))
 
 if __name__ == "__main__":
     c = XactionConsumer()
