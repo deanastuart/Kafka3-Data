@@ -1,11 +1,9 @@
 from kafka import KafkaConsumer, TopicPartition
 from json import loads
+from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-import os
+from statistics import mean
 
-password = os.getenv('MYSQLPW')
-engine = create_engine('mysql+mysqlconnector://root:' + password + '@localhost/zipbank')
 Base = declarative_base()
 
 
@@ -31,34 +29,40 @@ class XactionConsumer:
         # custBalances is the one where the current blance of each customer
         # account is kept.
         self.custBalances = {}
+        self.deposit =[]
+        self.withdrawal = []
         # THE PROBLEM is every time we re-run the Consumer, ALL our customer
         # data gets lost!
         # add a way to connect to your database here.
+    def meand(self):
+        try:
+            return round(sum(self.deposit)/len(self.deposit),2)
+        except ZeroDivisionError:
+            return 0
+
+    def meanw(self):
+        try:
+            return round(sum(self.withdrawal)/len(self.withdrawal), 2)
+        except ZeroDivisionError:
+            return 0
 
     def handleMessages(self):
         for message in self.consumer:
             message = message.value
             print('{} received'.format(message))
             self.ledger[message['custid']] = message
-            # add message to the transaction table in your SQL usinf SQLalchemy
             if message['custid'] not in self.custBalances:
                 self.custBalances[message['custid']] = 0
             if message['type'] == 'dep':
                 self.custBalances[message['custid']] += message['amt']
+                self.deposit.append(message['amt'])
             else:
                 self.custBalances[message['custid']] -= message['amt']
+                self.withdrawal.append(message['amt'])
             print(self.custBalances)
-
-            record = Transaction(custid=message['custid'], type=message['type'], date=message['date'],
-                                 amt=message['amt'])
-            Session = sessionmaker()
-            Session.configure(bind=engine)
-            session = Session()
-            session.add(record)
-            session.commit()
+            print("Average deposit amount: " + str(XactionConsumer.meand(self)))
+            print("Average withdrawal amount: " + str(XactionConsumer.meanw(self)))
 
 if __name__ == "__main__":
     c = XactionConsumer()
     c.handleMessages()
-
-

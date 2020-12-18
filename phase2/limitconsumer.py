@@ -52,7 +52,6 @@ class XactionConsumer:
                                  amt=message['amt'])
 
             for key in self.custBalances:
-                #print(key, self.custBalances[key])
                 if self.custBalances[key] < self.limit:
                     print("customer" + str(key) + " is below allowed negative threshold")
 if __name__ == "__main__":
