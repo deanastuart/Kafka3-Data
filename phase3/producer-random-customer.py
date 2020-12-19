@@ -3,7 +3,6 @@ from json import dumps
 from kafka import KafkaProducer
 from datetime import date
 import random
-
 from datetime import date
 
 
